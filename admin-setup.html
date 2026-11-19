@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Gallery — Admin Setup Guide</title>
+    <link rel="alternate" type="text/markdown" href="admin-setup.md">
+    <link rel="describedby" href="llms.txt" type="text/markdown">
+    <link rel="stylesheet" href="doc.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
+</head>
+<body>
+    <main id="content">
+        <noscript><p>This page renders markdown with JavaScript. <a href="admin-setup.md">Read the raw markdown instead.</a></p></noscript>
+        <p class="loading">Loading…</p>
+    </main>
+    <nav class="doc-nav">
+        <a href="index.html">← All docs</a>
+        <a href="admin-setup.md">Raw markdown</a>
+    </nav>
+    <script>
+        fetch("admin-setup.md")
+            .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+            .then(md => {
+                const el = document.getElementById("content");
+                el.innerHTML = marked.parse(md);
+                const h1 = el.querySelector("h1");
+                if (h1) document.title = h1.textContent + " — Demo Gallery";
+            })
+            .catch(err => {
+                document.getElementById("content").innerHTML =
+                    `<p>Could not load this page (${err.message}). <a href="admin-setup.md">Read the raw markdown instead.</a></p>`;
+            });
+    </script>
+</body>
+</html>

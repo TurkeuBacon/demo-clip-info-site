@@ -1,0 +1,37 @@
+# Demo Gallery
+
+> A guide for building a student demo gallery: a video-sharing site where students upload videos to a shared Google Drive folder, list them in a shared Google Sheet, and comment on each other's work after signing in with a school Google account (`@ucsc.edu`). The site is a single Cloudflare Worker — plain HTML/CSS/JS, no framework, no build step, no database — that streams videos from Drive and stores comments on the video files themselves.
+
+This site documents a small, complete, working project built exactly this way. It is written to be readable by both humans and LLMs: point your coding agent at the [technical specification](https://turkeubacon.github.io/demo-clip-info-site/specification.md) and it has everything needed to generate the whole project from scratch.
+
+The core idea: **the Google Sheet is the CMS and Google Drive is the CDN.** There is no admin panel, no database, and no caching layer. Students add a row to a shared sheet (Drive link, thumbnail timestamp, title), and the site renders it. Because the sheet is shared, students have direct authorship over their entries — no moderation queue.
+
+## Key design decisions
+
+- **Two separate Google credentials.** A *service account* (server-side: reads the sheet, streams video, posts comments) and an *OAuth client ID* (browser sign-in only). They are not interchangeable; the spec covers both.
+- **Server-side ID token verification.** The client-side Google sign-in button is only a UI hint. The Worker verifies every ID token against Google's JWKS and checks the audience, email verification, and `@ucsc.edu` domain before accepting a comment. The verified email is displayed as the comment's author name.
+- **A same-origin video proxy.** The Worker streams video from Drive (`GET /proxy/video/:id`, forwarding `Range` headers). This is what makes seeking work and what allows in-browser thumbnail capture: a hidden `<video>` seeks to the sheet's timestamp and a frame is drawn to a canvas. Without same-origin serving, the canvas would be CORS-tainted and thumbnails would silently fail.
+- **Comments live in Drive.** Comments are stored as Google Drive comments on the video file itself (formatted `email: text`), so they are visible both on the site and on the file in Drive.
+- **Local development only.** `wrangler dev` on port 8787 (the OAuth client ID is registered for that origin). Deployment to Cloudflare is out of scope for the docs here but follows naturally from wrangler.
+
+## How to use this documentation
+
+- **Generating the project:** give an LLM the [technical specification](https://turkeubacon.github.io/demo-clip-info-site/specification.md) and ask it to build the project. It includes the file layout, API surface, auth flows, and the admin setup section it must generate as a README.
+- **Configuring the project:** the [admin setup guide](https://turkeubacon.github.io/demo-clip-info-site/admin-setup.md) walks through every Google Cloud and local configuration step, including exactly where each credential goes.
+- **Adding videos:** the [student guide](https://turkeubacon.github.io/demo-clip-info-site/student-guide.md) is the short version to hand to students.
+
+## Guides
+
+- [Technical specification](https://turkeubacon.github.io/demo-clip-info-site/specification.md): Complete build spec for an LLM to generate the project — architecture, credentials, endpoints, sign-in flow, video proxy, sheet format, and pitfalls.
+- [Admin setup guide](https://turkeubacon.github.io/demo-clip-info-site/admin-setup.md): Step-by-step Google Cloud configuration (service account, OAuth client ID, sharing) and where to paste each value.
+- [Student guide](https://turkeubacon.github.io/demo-clip-info-site/student-guide.md): How students upload a video, add it to the sheet, and sign in to comment.
+
+## Optional
+
+- [Technical specification (HTML)](https://turkeubacon.github.io/demo-clip-info-site/specification.html): Human-readable rendering of the specification (the markdown above is the source of truth).
+- [Admin setup guide (HTML)](https://turkeubacon.github.io/demo-clip-info-site/admin-setup.html): Human-readable rendering.
+- [Student guide (HTML)](https://turkeubacon.github.io/demo-clip-info-site/student-guide.html): Human-readable rendering.
+- [Google Identity Services (JS reference)](https://developers.google.com/identity/gsi/web/reference/js-reference): The sign-in button library used by the project; `hosted_domain` is only a hint, server-side verification is the enforcement.
+- [Drive API — files.comments](https://developers.google.com/drive/api/reference/rest/v3/comments): Where site comments are stored.
+- [Wrangler — Cloudflare Workers CLI](https://developers.cloudflare.com/workers/wrangler/): Local dev server, config, and static assets binding.
+- [Sign in with Google for Web](https://developers.google.com/identity/gsi/web): Overview of the sign-in flow used on both pages.
